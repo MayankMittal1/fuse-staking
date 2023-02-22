@@ -9,7 +9,7 @@ export const getWeb3 = ({ provider, networkType } = {}) => {
 
   if (provider) {
     givenWeb3 = null
-    givenWeb3 = new Web3(provider)
+    givenWeb3 = provider
     return givenWeb3
   }
 

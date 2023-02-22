@@ -11,6 +11,7 @@ import keyBy from 'lodash/keyBy'
 import omit from 'lodash/omit'
 import { balanceOfNative } from '@/actions/accounts'
 import { fetchNodeByAddress, fetchOldNodes } from '@/services/api/boot'
+import Web3 from 'web3'
 
 function * getTotalStakeAmount () {
   const web3 = yield getWeb3({ networkType: 'fuse' })
@@ -131,7 +132,8 @@ function * watchGetValidators ({ response: { entities, isOld } }) {
 function * withdraw ({ validatorAddress, amount }) {
   const { accountAddress } = yield select((state) => state.network)
   if (accountAddress) {
-    const web3 = yield getWeb3()
+    const signer = yield getWeb3()
+    const web3 = new Web3(signer.provider)
     const consensusContract = new web3.eth.Contract(
       ConsensusABI,
       CONFIG.consensusAddress
@@ -147,9 +149,9 @@ function * withdraw ({ validatorAddress, amount }) {
       data
     }
 
-    const gasLimit = yield web3.eth.estimateGas(transactionObject)
+    const gasLimit = yield signer.estimateGas(transactionObject)
 
-    const transactionPromise = web3.eth.sendTransaction({
+    const transactionPromise = signer.sendTransaction({
       ...transactionObject,
       gasLimit
     })
@@ -162,7 +164,8 @@ function * withdraw ({ validatorAddress, amount }) {
 function * delegate ({ validatorAddress, amount }) {
   const { accountAddress } = yield select((state) => state.network)
   if (accountAddress) {
-    const web3 = yield getWeb3()
+    const signer = yield getWeb3()
+    const web3 = new Web3(signer.provider)
     const consensusContract = new web3.eth.Contract(
       ConsensusABI,
       CONFIG.consensusAddress
@@ -179,9 +182,9 @@ function * delegate ({ validatorAddress, amount }) {
       data
     }
 
-    const gasLimit = yield web3.eth.estimateGas(transactionObject)
+    const gasLimit = yield signer.estimateGas(transactionObject)
 
-    const transactionPromise = web3.eth.sendTransaction({
+    const transactionPromise = signer.sendTransaction({
       ...transactionObject,
       gasLimit
     })

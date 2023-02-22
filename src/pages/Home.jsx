@@ -24,20 +24,33 @@ import {
   getBlockRewardAmount,
   getBlockNumber
 } from '@/actions/consensus'
-import { switchNetwork } from '@/actions/network'
+import { useSwitchNetwork } from 'wagmi'
 import { networkIds } from '@/utils/network'
 
 export default ({ handleConnect }) => {
   const dispatch = useDispatch()
-  const { accountAddress, blockNumber = 0, networkId } = useSelector(state => state.network)
-  const { totalStakeAmount } = useSelector(state => state.consensus)
-  const accounts = useSelector(state => state.accounts)
+  const {
+    accountAddress,
+    blockNumber = 0,
+    networkId
+  } = useSelector((state) => state.network)
+  const { totalStakeAmount } = useSelector((state) => state.consensus)
+  const accounts = useSelector((state) => state.accounts)
   const balance = get(accounts, [accountAddress, 'balanceOfNative'], 0)
-  const { validator } = useSelector(state => state.screens.stake)
-  const validators = useSelector(state => state.entities.validators)
+  const { validator } = useSelector((state) => state.screens.stake)
+  const validators = useSelector((state) => state.entities.validators)
   const yourStake = get(validators, [validator, 'yourStake'], 0)
+  const { switchNetwork } = useSwitchNetwork()
 
-  const myTotal = useMemo(() => Object.values(validators).reduce((accumulator, { yourStake }) => accumulator.plus(new BigNumber(yourStake ?? 0)), new BigNumber(0)), [validators])
+  const myTotal = useMemo(
+    () =>
+      Object.values(validators).reduce(
+        (accumulator, { yourStake }) =>
+          accumulator.plus(new BigNumber(yourStake ?? 0)),
+        new BigNumber(0)
+      ),
+    [validators]
+  )
 
   const [modalStatus, setModalStatus] = useState(false)
 
@@ -46,26 +59,31 @@ export default ({ handleConnect }) => {
     dispatch(getOldValidators())
   }, [])
 
-  const [showModal] = useModal(() => (
-    <ReactModal isOpen={modalStatus} overlayClassName='modal__overlay' className='modal__content'>
-      <div className='info-modal'>
-        <div className='title'>
-          Unsupported network
+  const [showModal] = useModal(
+    () => (
+      <ReactModal
+        isOpen={modalStatus}
+        overlayClassName='modal__overlay'
+        className='modal__content'
+      >
+        <div className='info-modal'>
+          <div className='title'>Unsupported network</div>
+          <div className='text'>
+            Click on the button below to switch to fuse
+          </div>
+          <button
+            className='close'
+            onClick={() => {
+              switchNetwork(networkIds.FUSE)
+            }}
+          >
+            Switch to Fuse
+          </button>
         </div>
-        <div className='text'>
-          Click on the button below to switch to fuse
-        </div>
-        <button
-          className='close'
-          onClick={() => {
-            dispatch(switchNetwork(networkIds.FUSE))
-          }}
-        >
-          Switch to Fuse
-        </button>
-      </div>
-    </ReactModal>
-  ), [modalStatus])
+      </ReactModal>
+    ),
+    [modalStatus]
+  )
 
   useEffect(() => {
     if (accountAddress) {
@@ -104,7 +122,10 @@ export default ({ handleConnect }) => {
     ReactGA.event({
       category: 'action',
       action: `Action - ${submitType}`,
-      label: `${submitType} ${amount} into pool: ${get(validators, [validator, 'name'])} ${validator} `
+      label: `${submitType} ${amount} into pool: ${get(validators, [
+        validator,
+        'name'
+      ])} ${validator} `
     })
   }
 
@@ -118,9 +139,7 @@ export default ({ handleConnect }) => {
             withSymbol={false}
             end={blockNumber}
             title='Block number'
-            Icon={() => (
-              <img src={blockCubeIcon} />
-            )}
+            Icon={() => <img src={blockCubeIcon} />}
           />
           <InfoBox
             name='deposits'
@@ -128,26 +147,33 @@ export default ({ handleConnect }) => {
             title='Balance'
             end={formatWeiToNumber(balance)}
             decimals={2}
-            Icon={() => (
-              <img src={briefcaseIcon} />
-            )}
+            Icon={() => <img src={briefcaseIcon} />}
           />
           <LargeInfoBox
             name='rewards'
             symbol='FUSE'
-            end={isNaN(formatWeiToNumber(myTotal)) ? 0 : formatWeiToNumber(myTotal)}
-            secondEnd={isNaN(formatWeiToNumber(totalStakeAmount)) ? 0 : formatWeiToNumber(totalStakeAmount)}
+            end={
+              isNaN(formatWeiToNumber(myTotal)) ? 0 : formatWeiToNumber(myTotal)
+            }
+            secondEnd={
+              isNaN(formatWeiToNumber(totalStakeAmount))
+                ? 0
+                : formatWeiToNumber(totalStakeAmount)
+            }
             title='Your total staked'
             decimals={2}
             secondTitle='Total staked'
-            Icon={() => (
-              <img src={metricIcon} />
-            )}
+            Icon={() => <img src={metricIcon} />}
           />
         </div>
         <ValidatorsList />
       </div>
-      <Tabs handleConnect={handleConnect} yourStake={yourStake} balance={balance} onSubmit={onSubmit} />
+      <Tabs
+        handleConnect={handleConnect}
+        yourStake={yourStake}
+        balance={balance}
+        onSubmit={onSubmit}
+      />
     </div>
   )
 }

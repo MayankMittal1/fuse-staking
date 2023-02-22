@@ -8,8 +8,15 @@ import { getValidators } from '@/actions/consensus'
 import { getNetwork } from '@/utils/network'
 
 function * getNetworkTypeInternal (web3) {
-  const networkId = yield web3.eth.net.getId()
-  return { networkId }
+  let networkId = 1
+  let networkType = 'unknown'
+  try {
+    networkId = yield web3.getChainId()
+    networkType = 'Fuse'
+  } catch (e) {
+    networkId = 1
+  }
+  return { networkType, networkId }
 }
 
 function * watchNetworkChanges (provider) {
@@ -44,9 +51,9 @@ function * watchAccountChanges (provider) {
   }
 }
 
-function * connectToWallet () {
+function * connectToWallet ({ account }) {
   const web3 = yield getWeb3Service()
-  const provider = web3.currentProvider
+  const provider = web3.provider
 
   try {
     if (provider.isMetaMask) {
@@ -55,8 +62,7 @@ function * connectToWallet () {
 
     const providerInfo = getProviderInfo(provider)
 
-    const accounts = yield web3.eth.getAccounts()
-    const accountAddress = accounts[0]
+    const accountAddress = account.account
 
     yield fork(watchNetworkChanges, provider)
     yield fork(watchAccountChanges, provider)
@@ -152,10 +158,9 @@ function * getBlockNumber () {
 function * switchNetwork ({ networkId }) {
   try {
     const web3 = yield getWeb3Service()
-    const provider = web3.currentProvider
     const network = getNetwork(networkId)
 
-    const response = yield call(provider.request, {
+    const response = yield call(web3.call, {
       method: 'wallet_addEthereumChain',
       params: [
         {

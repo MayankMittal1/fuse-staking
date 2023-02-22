@@ -55,7 +55,7 @@ const NavBar = ({ handleConnect, handleLogout }) => {
                 <div
                   className='header__wallet__wrapper'
                   ref={dropdownRef}
-                  onClick={() => setDropdownOpen(!isDropdownOpen)}
+                  onClick={() => handleLogout()}
                 >
                   <div className='header__wallet header__wallet--logged-in'>
                     <span className='dot' />

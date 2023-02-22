@@ -15,7 +15,7 @@ export const ACCOUNT_LOGGED_OUT = 'ACCOUNT_LOGGED_OUT'
 export const SWITCH_NETWORK = createRequestTypes('SWITCH_NETWORK')
 
 export const checkNetworkType = (enableProvider, provider) => requestAction(CHECK_NETWORK_TYPE, { provider, enableProvider })
-export const connectToWallet = () => requestAction(CONNECT_TO_WALLET)
+export const connectToWallet = (account) => requestAction(CONNECT_TO_WALLET, { account })
 export const disconnectWallet = () => requestAction(DISCONNECT_WALLET)
 
 export const getBlockNumber = (networkType, bridgeType) => requestAction(GET_BLOCK_NUMBER, { networkType, bridgeType })

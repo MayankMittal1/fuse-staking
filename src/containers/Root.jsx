@@ -5,45 +5,54 @@ import Header from '@/components/common/Header.jsx'
 import Footer from '@/components/common/Footer.jsx'
 import HomePage from '@/pages/Home'
 import { getWeb3 } from '@/services/web3'
-import useWeb3Connect from '@/hooks/useWeb3Connect'
+import {
+  useProvider,
+  useAccount,
+  useSigner
+} from 'wagmi'
+import { useWeb3Modal } from '@web3modal/react'
 import { connectToWallet, disconnectWallet } from '@/actions/network'
 
 export default () => {
+  const providerInfo = useProvider()
   const dispatch = useDispatch()
-  const onConnectCallback = (provider) => {
-    getWeb3({ provider })
-    dispatch(connectToWallet())
-  }
+  const { address } = useAccount()
+  const { data: signer } = useSigner()
 
-  const web3connect = useWeb3Connect(onConnectCallback)
+  useEffect(() => {
+    if (!address) {
+      dispatch(disconnectWallet())
+    }
+  }, [address])
+
+  const { open } = useWeb3Modal()
 
   const handleLogout = useCallback(async () => {
     try {
-      if (web3connect?.provider?.close) {
-        await web3connect?.provider?.close()
-      }
-
-      await web3connect?.core?.clearCachedProvider()
-      dispatch(disconnectWallet())
+      open({
+        route: 'Account'
+      })
     } catch (e) {
       console.error(e)
     }
-  }, [web3connect])
+  }, [providerInfo])
 
-  const handleConnect = useCallback(() => {
-    web3connect.toggleModal()
+  const handleConnect = useCallback(async () => {
+    open({
+      route: 'ConnectWallet'
+    })
     ReactGA.event({
       category: 'action',
       action: 'Connect wallet',
       label: 'Connect wallet'
     })
-  }, [web3connect])
+  }, [providerInfo])
 
   useEffect(() => {
-    if (web3connect.core.cachedProvider) {
-      web3connect.core.connect()
-    }
-  }, [])
+    if (!signer) return
+    getWeb3({ provider: signer })
+    dispatch(connectToWallet({ account: address }))
+  }, [signer, address])
 
   return (
     <>

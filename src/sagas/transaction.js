@@ -1,34 +1,54 @@
 import { call, put, fork, take } from 'redux-saga/effects'
 import { eventChannel } from 'redux-saga'
 
-import { transactionPending, transactionConfirmed, transactionFailed, transactionSucceeded } from '@/actions/transactions'
+import {
+  transactionPending,
+  transactionConfirmed,
+  transactionFailed,
+  transactionSucceeded
+} from '@/actions/transactions'
 
-export function * transactionFlow ({ transactionPromise, action, confirmationsLimit, tokenAddress }) {
+export function * transactionFlow ({
+  transactionPromise,
+  action,
+  confirmationsLimit,
+  tokenAddress
+}) {
   if (confirmationsLimit) {
-    yield fork(transactionConfirmations, { transactionPromise, action, confirmationsLimit })
+    yield fork(transactionConfirmations, {
+      transactionPromise,
+      action,
+      confirmationsLimit
+    })
   }
 
-  const transactionHash = yield new Promise((resolve, reject) => {
-    transactionPromise.on('transactionHash', (transactionHash) =>
-      resolve(transactionHash)
-    )
-    transactionPromise.on('error', (error) => {
-      const rejected = 'User denied transaction signature'
-      if (((typeof error === 'string') && (error.includes(rejected))) ||
-        ((typeof error.message === 'string') && error.message.includes(rejected))) {
-        if (error.error) {
-          error.error = rejected
-          reject(error)
-        } else {
-          const err = 'User denied transaction signature'
-          reject(err)
+  const receipt = yield new Promise((resolve, reject) => {
+    transactionPromise
+      .then((res) => {
+        res.wait().then((tx) => {
+          resolve(tx)
+        })
+      })
+      .catch((error) => {
+        const rejected = 'User rejected the request.'
+        if (
+          (typeof error === 'string' && error.includes(rejected)) ||
+          (typeof error.message === 'string' &&
+            error.message.includes(rejected))
+        ) {
+          if (error.error) {
+            error.error = rejected
+            reject(error)
+          } else {
+            const err = 'User rejected the request.'
+            reject(err)
+          }
         }
-      }
-      reject(error)
-    })
+        reject(error)
+      })
   })
-  yield put(transactionPending(action, transactionHash))
-  const receipt = yield transactionPromise
+
+  yield put(transactionPending(action, receipt.transactionHash))
 
   if (!Number(receipt.status)) {
     yield put(transactionFailed(action, receipt))
@@ -41,7 +61,7 @@ export function * transactionFlow ({ transactionPromise, action, confirmationsLi
 }
 
 function createConfirmationChannel (transactionPromise) {
-  return eventChannel(emit => {
+  return eventChannel((emit) => {
     const func = (confirmationNumber, receipt) => {
       emit({ receipt, confirmationNumber })
     }
@@ -55,8 +75,15 @@ function createConfirmationChannel (transactionPromise) {
   })
 }
 
-export function * transactionConfirmations ({ confirmationsLimit, transactionPromise, action }) {
-  const confirmationChannel = yield call(createConfirmationChannel, transactionPromise)
+export function * transactionConfirmations ({
+  confirmationsLimit,
+  transactionPromise,
+  action
+}) {
+  const confirmationChannel = yield call(
+    createConfirmationChannel,
+    transactionPromise
+  )
 
   let isWaiting = true
   while (isWaiting) {
